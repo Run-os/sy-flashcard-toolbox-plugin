@@ -3,6 +3,7 @@ import {
 } from "siyuan";
 import { createApp } from 'vue'
 import App from './App.vue'
+import { init as initFlashcardTitleEditor, cleanup as cleanupFlashcardTitleEditor } from './features/flashcard-title-editor/index';
 
 let plugin = null
 export function usePlugin(pluginProps?: Plugin): Plugin {
@@ -17,21 +18,37 @@ export function usePlugin(pluginProps?: Plugin): Plugin {
 }
 
 
-let app = null
+let app = null;
+let appDiv: HTMLDivElement | null = null;
+
 export function init(plugin: Plugin) {
   // bind plugin hook
   usePlugin(plugin);
 
-  const div = document.createElement('div')
-  div.classList.toggle('plugin-sample-vite-vue-app')
-  div.id = this.name
-  app = createApp(App)
-  app.mount(div)
-  document.body.appendChild(div)
+  appDiv = document.createElement('div');
+  appDiv.classList.add('plugin-sample-vite-vue-app');
+  appDiv.id = 'plugin-sample-vite-vue-app';
+  app = createApp(App);
+  app.mount(appDiv);
+  document.body.appendChild(appDiv);
+
+  // 初始化闪卡标题编辑器功能
+  initFlashcardTitleEditor(plugin);
 }
 
 export function destroy() {
-  app.unmount()
-  const div = document.getElementById(this.name)
-  document.body.removeChild(div)
+  // 清理闪卡标题编辑器资源
+  cleanupFlashcardTitleEditor();
+
+  // 清理 Vue 应用
+  if (app) {
+    app.unmount();
+    app = null;
+  }
+
+  // 移除 DOM 元素
+  if (appDiv && appDiv.parentNode) {
+    appDiv.parentNode.removeChild(appDiv);
+    appDiv = null;
+  }
 }
