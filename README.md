@@ -46,27 +46,6 @@
 
 ## 开发指南
 
-### 环境要求
-
-- [Node.js](https://nodejs.org/) (v18 或更高版本)
-- [pnpm](https://pnpm.io/installation)
-
-### 项目设置
-
-```bash
-# 克隆仓库
-git clone https://github.com/Run-os/siyuan-flashcard-title-toolbox-plugin.git
-cd siyuan-flashcard-title-toolbox-plugin
-
-# 安装依赖
-pnpm install
-
-# 复制环境配置文件
-cp .env.example .env
-```
-
-编辑 `.env` 文件，将 `VITE_SIYUAN_WORKSPACE_PATH` 设置为您的思源工作空间路径。
-
 ### 开发模式
 
 ```bash
@@ -82,6 +61,14 @@ pnpm build
 ```
 
 此命令将在项目根目录生成 `package.zip`。
+
+### 发布版本
+
+```bash
+pnpm release:patch  # 递增补丁版本
+pnpm release:minor  # 递增次版本
+pnpm release:major  # 递增主版本
+```
 
 ## 技术细节
 
