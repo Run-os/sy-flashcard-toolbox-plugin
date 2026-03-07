@@ -147,4 +147,4 @@ pnpm release:manual  # 手动指定版本号
 - [思源笔记官网](https://b3log.org/siyuan/)
 - [思源插件开发指南](https://github.com/siyuan-note/plugin-sample)
 - [思源插件 SDK](https://github.com/siyuan-note/petal)
-- [sysy-tomato-plugin](https://github.com/IAliceBobI/sy-tomato-plugin)
+- [sy-tomato-plugin](https://github.com/IAliceBobI/sy-tomato-plugin)
