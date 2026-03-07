@@ -7,8 +7,10 @@ import {
   REVIEW_INTERFACE_ATTR,
   REVIEW_INTERFACE_VALUE,
   EDITOR_INTERFACE_ATTR,
-  EDITOR_INTERFACE_VALUE
+  EDITOR_INTERFACE_VALUE,
+  INTERFACE_TYPE
 } from './constants';
+import type { InterfaceType } from './types';
 import { pushMsg, pushErrMsg } from '../../api';
 
 export const debounce = (fn: Function, delay = DEBOUNCE_DELAY) => {
@@ -110,4 +112,62 @@ export const isInEditorInterface = (cardElement: HTMLElement): boolean => {
     parent = parent.parentElement;
   }
   return false;
+};
+
+// ========== 统一界面判断函数 ==========
+
+/**
+ * 获取界面容器
+ * @returns layout-tab-container 元素
+ */
+const getLayoutContainer = (): HTMLElement | null => {
+  return document.querySelector('.layout-tab-container.fn__flex-1');
+};
+
+/**
+ * 判断当前打开的界面类型
+ * 基于 layout-tab-container 子元素的 class 特征判断
+ * @returns 界面类型
+ */
+export const getCurrentOpenInterface = (): InterfaceType => {
+  const container = getLayoutContainer();
+  if (!container) return 'other';
+
+  // 查找打开的编辑界面（有 protyle 类，无 fn__none 类）
+  const openEditor = container.querySelector(':scope > .protyle:not(.fn__none)');
+  if (openEditor) return 'editor';
+
+  // 查找打开的闪卡界面（有 data-key="dialog-opencard"，无 fn__none 类）
+  const openReview = container.querySelector(':scope > [data-key="dialog-opencard"]:not(.fn__none)');
+  if (openReview) return 'review';
+
+  return 'other';
+};
+
+/**
+ * 统一判断元素所属界面类型
+ * 先通过 protyle 类区分「编辑/闪卡」界面类型，再通过 fn__none 类判断「打开/未打开」状态
+ * @param element 待判断元素
+ * @returns 界面类型
+ */
+export const judgeInterfaceType = (element: HTMLElement): InterfaceType => {
+  let parent = element.parentElement;
+  while (parent) {
+    // 检查是否在闪卡界面容器内（data-key="dialog-opencard" 且无 protyle 类）
+    if (parent.getAttribute(REVIEW_INTERFACE_ATTR) === REVIEW_INTERFACE_VALUE) {
+      // 确认该容器是否打开（无 fn__none 类）
+      if (!parent.classList.contains('fn__none')) {
+        return INTERFACE_TYPE.REVIEW as InterfaceType;
+      }
+    }
+    // 检查是否在编辑界面容器内（有 protyle 类）
+    if (parent.classList.contains('protyle')) {
+      // 确认该容器是否打开（无 fn__none 类）
+      if (!parent.classList.contains('fn__none')) {
+        return INTERFACE_TYPE.EDITOR as InterfaceType;
+      }
+    }
+    parent = parent.parentElement;
+  }
+  return INTERFACE_TYPE.OTHER as InterfaceType;
 };

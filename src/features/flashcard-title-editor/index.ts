@@ -1,448 +1,201 @@
+/**
+ * 闪卡标题编辑器 - 主入口
+ * 统一管理编辑界面和闪卡界面的监听与处理
+ */
+
 import { Dialog } from 'siyuan';
+import type { InterfaceType } from './types';
 import {
-  EDIT_BUTTON_CLASS,
-  EDIT_BUTTON_TOOLTIP,
   TIP_BLOCK_ID_MISSING,
-  FLASHCARD_SELECTOR,
   DIALOG_TITLE,
   SAVE_BUTTON_TEXT,
   CANCEL_BUTTON_TEXT,
   TIP_SAVE_SUCCESS,
   TIP_SAVE_FAILED,
-  FLASHCARD_TITLE_ATTR,
-  TITLE_REPLACED_FLAG,
-  EDITOR_TITLE_HINT_ATTR,
-  EDITOR_INTERFACE_ATTR,
-  EDITOR_INTERFACE_VALUE
+  FLASHCARD_TITLE_ATTR
 } from './constants';
 import {
   isMobileEnv,
   showSiyuanMsg,
-  filterInvalidChars,
-  isHeadingElement,
-  getHeadingTextElement,
-  getCustomTitle,
-  isInReviewInterface
+  filterInvalidChars
 } from './utils';
-import { getBlockAttrs, setBlockAttrs, getBlockByID } from '../../api';
+import { getBlockAttrs, setBlockAttrs } from '../../api';
 import { createDebugLogger } from '@/utils/debug';
+import {
+  initCommonObserver,
+  shouldScanFromMutations
+} from './observer';
+import { scanFlashcardElements, isReviewInterfaceOpen } from './scanner';
+import {
+  handleFlashcardTitle,
+  cleanupProcessedElements,
+  unmarkElementProcessed
+} from './handler';
 
 // 使用带前缀的调试日志器
 const debug = createDebugLogger('FlashcardTitle');
 
-let observer: MutationObserver | null = null;
+// 监听器实例
 let editorObserver: MutationObserver | null = null;
 let reviewObserver: MutationObserver | null = null;
 let currentDialog: Dialog | null = null;
+let isDialogOpening = false; // 防止重复打开对话框的标志
+let isEditButtonListenerSetup = false; // 防止重复注册事件监听器
 
+// 保存事件处理函数的引用，用于移除监听器
+const editButtonHandler = ((e: Event) => {
+  const customEvent = e as CustomEvent<{ blockId: string }>;
+  debug.log('收到 flashcard-title-edit 事件', customEvent.detail);
+  const { blockId } = customEvent.detail;
+  openEditDialog(blockId);
+}) as EventListener;
+
+/**
+ * 插件初始化入口
+ */
 export const init = (plugin: any) => {
   setTimeout(() => {
-    initMutationObserver();
-    scanEditorFlashcards();
-    initReviewObserver();
+    // 初始化编辑界面监听
+    editorObserver = initCommonObserver(
+      {
+        interfaceType: 'editor',
+        attributeFilter: ['custom-riff-decks', 'data-node-id', 'custom-riff-title']
+      },
+      handleMutationCallback
+    );
+
+    // 初始化闪卡界面监听
+    reviewObserver = initCommonObserver(
+      {
+        interfaceType: 'review',
+        attributeFilter: ['custom-riff-title', 'class']
+      },
+      handleMutationCallback
+    );
+
+    // 首次扫描
+    performInitialScan();
+
+    // 监听编辑按钮点击事件
+    setupEditButtonListener();
   }, 1000);
-  
+
   if (plugin && typeof plugin.onunload === 'function') {
     plugin.onunload(() => cleanup());
   }
 };
 
-const initMutationObserver = () => {
-  // 监听整个 body，捕获所有编辑器视图的变化
-  editorObserver = new MutationObserver((mutations) => {
-    // 检查是否有新的 protyle-wysiwyg 元素出现
-    let shouldScan = false;
-    let shouldScanTitleHints = false;
-    for (const mutation of mutations) {
-      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-        for (const node of Array.from(mutation.addedNodes)) {
-          if (node instanceof HTMLElement) {
-            // 检查是否是编辑器相关元素
-            if (node.classList?.contains('protyle-wysiwyg') ||
-                node.querySelector?.('.protyle-wysiwyg') ||
-                node.hasAttribute?.('custom-riff-decks')) {
-              shouldScan = true;
-              shouldScanTitleHints = true;
-              break;
-            }
+/**
+ * 统一的 Mutation 回调处理
+ */
+const handleMutationCallback = (
+  mutations: MutationRecord[],
+  interfaceType: InterfaceType
+) => {
+  const { shouldScan, shouldScanTitle } = shouldScanFromMutations(
+    mutations,
+    interfaceType
+  );
+
+  if (shouldScan || shouldScanTitle) {
+    const elements = scanFlashcardElements(interfaceType);
+    elements.forEach((el) => {
+      // 闪卡界面：如果标题属性变化，先移除已处理标记
+      if (interfaceType === 'review') {
+        for (const mutation of mutations) {
+          if (
+            mutation.type === 'attributes' &&
+            mutation.attributeName === 'custom-riff-title' &&
+            mutation.target === el
+          ) {
+            unmarkElementProcessed(el);
+            break;
           }
         }
       }
-      if (mutation.type === 'attributes') {
-        if (mutation.attributeName === 'custom-riff-decks' ||
-            mutation.attributeName === 'data-node-id') {
-          shouldScan = true;
-          shouldScanTitleHints = true;
-        }
-        // 监听 custom-riff-title 属性变化
-        if (mutation.attributeName === 'custom-riff-title') {
-          shouldScanTitleHints = true;
-        }
-      }
-      if (shouldScan && shouldScanTitleHints) break;
-    }
-    if (shouldScan) {
-      scanEditorFlashcards();
-    }
-    if (shouldScanTitleHints) {
-      scanEditorTitleHints();
-    }
-  });
-
-  // 监听整个文档
-  editorObserver.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['custom-riff-decks', 'data-node-id', 'custom-riff-title']
-  });
-
-  // 立即扫描一次
-  scanEditorFlashcards();
-  scanEditorTitleHints();
-};
-
-const scanEditorFlashcards = () => {
-  const cardElements = document.querySelectorAll<HTMLElement>(FLASHCARD_SELECTOR);
-  
-  cardElements.forEach((cardElement) => {
-    const blockId = cardElement.getAttribute('data-node-id');
-    if (!blockId) return;
-
-    // 找到闪卡的最后一个 .protyle-attr（控制栏在这里）
-    const allProtyleAttrs = cardElement.querySelectorAll<HTMLElement>(':scope > .protyle-attr');
-    if (allProtyleAttrs.length === 0) return;
-    
-    const protyleAttr = allProtyleAttrs[allProtyleAttrs.length - 1];
-    
-    // 检查按钮是否已存在
-    if (protyleAttr.querySelector(`.${EDIT_BUTTON_CLASS}`)) return;
-
-    // 创建按钮（使用思源的 protyle-attr__btn 样式）
-    const editButton = createEditButton(blockId);
-    protyleAttr.appendChild(editButton);
-  });
-};
-
-// ========== 编辑界面标题提示功能 ==========
-
-/**
- * 检查元素是否在编辑界面
- * @param element 待检查元素
- * @returns 是否在编辑界面内
- */
-const isElementInEditorInterface = (element: HTMLElement): boolean => {
-  let parent = element.parentElement;
-  while (parent) {
-    if (parent.getAttribute(EDITOR_INTERFACE_ATTR) === EDITOR_INTERFACE_VALUE) {
-      return true;
-    }
-    parent = parent.parentElement;
-  }
-  return false;
-};
-
-/**
- * 扫描编辑界面的闪卡标题提示
- * 在闪卡的第一个标题块末尾显示替代标题（使用 CSS 伪元素）
- */
-const scanEditorTitleHints = () => {
-  // 查找所有闪卡
-  const cardElements = document.querySelectorAll<HTMLElement>('[custom-riff-decks]');
-  
-  cardElements.forEach((cardElement) => {
-    // 检查是否在编辑界面
-    if (!isElementInEditorInterface(cardElement)) {
-      return;
-    }
-    
-    // 排除闪卡界面（闪卡界面由 replaceFlashcardTitle 处理）
-    if (isInReviewInterface(cardElement)) {
-      return;
-    }
-    
-    // 查找第一个标题块
-    const headingElement = cardElement.querySelector<HTMLElement>('[data-type="NodeHeading"]');
-    if (!headingElement) {
-      return;
-    }
-    
-    // 获取标题文本元素（contenteditable）
-    const textElement = headingElement.querySelector<HTMLElement>('div[contenteditable="true"]');
-    if (!textElement) {
-      return;
-    }
-    
-    // 获取 custom-riff-title 值
-    const customTitle = cardElement.getAttribute('custom-riff-title');
-    
-    if (customTitle && customTitle.trim()) {
-      // 设置 data 属性，CSS 会自动显示伪元素
-      textElement.setAttribute(EDITOR_TITLE_HINT_ATTR, customTitle.trim());
-    } else {
-      // 移除 data 属性
-      textElement.removeAttribute(EDITOR_TITLE_HINT_ATTR);
-    }
-  });
-};
-
-// ========== 闪卡界面标题替换功能 ==========
-
-/**
- * 替换单个闪卡的标题
- * @param cardElement 闪卡元素
- */
-const replaceFlashcardTitle = async (cardElement: HTMLElement) => {
-  debug.log('开始处理闪卡（已确认在闪卡界面）', cardElement);
-  
-  // 检查是否已替换，避免重复处理
-  if (cardElement.hasAttribute(TITLE_REPLACED_FLAG)) {
-    debug.log('已处理过，跳过');
-    return;
-  }
-  
-  // 获取自定义标题
-  const customTitle = getCustomTitle(cardElement);
-  debug.log('custom-riff-title 属性值:', customTitle);
-  
-  // 获取第一个子元素
-  // 如果是超级块，需要在子元素中查找；否则 firstTitleChild 就是 cardElement 自身
-  let firstTitleChild: HTMLElement | null;
-  if (cardElement.getAttribute('data-type') === 'NodeSuperBlock') {
-    // 超级块：查找第一个子元素（排除 protyle-attr）
-    firstTitleChild = cardElement.querySelector<HTMLElement>(':scope > div:not(.protyle-attr)');
-  } else {
-    // 非超级块：cardElement 自身就是标题元素
-    firstTitleChild = cardElement;
-  }
-  debug.log('第一个子元素:', firstTitleChild);
-  debug.log('第一个子元素的 data-type:', firstTitleChild?.getAttribute('data-type'));
-  
-  if (!firstTitleChild) {
-    debug.log('未找到第一个子元素');
-    return;
-  }
-  
-//  if (!isHeadingElement(firstTitleChild)) {
-//   debug.log('第一个子元素不是标题');
-//    return;
-// }
-  
-  // 获取标题文本元素
-  const textElement = getHeadingTextElement(firstTitleChild);
-  debug.log('标题文本元素:', textElement);
-  debug.log('原标题文本:', textElement?.textContent);
-  
-  if (!textElement) {
-    debug.log('未找到标题文本元素');
-    return;
-  }
-  
-  // 如果标题为空，需要恢复原标题
-  if (!customTitle) {
-    // 从标题元素获取块 ID 以查询原始标题（标题元素有独立的 data-node-id）
-    const headingBlockId = firstTitleChild.getAttribute('data-node-id');
-    if (headingBlockId) {
-      try {
-        const block = await getBlockByID(headingBlockId);
-        if (block && block.content) {
-          textElement.textContent = block.content;
-          debug.log('✅ 标题已恢复为原标题:', block.content);
-        } else {
-          debug.log('标题为空，保持原标题不变');
-        }
-      } catch (error) {
-        debug.log('获取原标题失败，保持当前标题不变');
-      }
-    } else {
-      debug.log('标题为空，保持原标题不变');
-    }
-    // 标记已处理
-    cardElement.setAttribute(TITLE_REPLACED_FLAG, 'true');
-    return;
-  }
-  
-  // 仅替换文本内容，保持所有属性和结构不变
-  const originalText = textElement.textContent;
-  textElement.textContent = customTitle;
-  
-  debug.log('✅ 标题替换成功:', originalText, '->', customTitle);
-  
-  // 标记已处理
-  cardElement.setAttribute(TITLE_REPLACED_FLAG, 'true');
-};
-
-/**
- * 检查元素是否在闪卡界面内
- * @param element 待检查元素
- * @returns 是否在闪卡界面内
- */
-const isElementInReviewInterface = (element: HTMLElement): boolean => {
-  let parent = element.parentElement;
-  while (parent) {
-    if (parent.getAttribute('data-key') === 'dialog-opencard') {
-      return true;
-    }
-    parent = parent.parentElement;
-  }
-  return false;
-};
-
-/**
- * 初始化闪卡界面 MutationObserver
- */
-const initReviewObserver = () => {
-  debug.log('初始化闪卡界面监听器');
-  
-  // 创建闪卡界面监听器
-  reviewObserver = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      const target = mutation.target as HTMLElement;
-      
-      // 处理子节点变化
-      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-        for (const node of Array.from(mutation.addedNodes)) {
-          if (node instanceof HTMLElement) {
-            // 先判断是否在闪卡界面内
-            if (!isElementInReviewInterface(node)) {
-              continue;
-            }
-            // 检查是否是带有 custom-riff-decks 属性的闪卡
-            if (node.hasAttribute?.('custom-riff-decks')) {
-              debug.log('检测到闪卡元素（新增，在闪卡界面内）', node);
-              setTimeout(() => replaceFlashcardTitle(node as HTMLElement), 100);
-              return;
-            }
-            
-            // 检查子元素中是否有闪卡
-            const cardElement = node.querySelector?.('[custom-riff-decks]') as HTMLElement;
-            if (cardElement && isElementInReviewInterface(cardElement)) {
-              debug.log('检测到闪卡元素（子元素，在闪卡界面内）', cardElement);
-              setTimeout(() => replaceFlashcardTitle(cardElement), 100);
-              return;
-            }
-          }
-        }
-      }
-      
-      // 处理属性变化（闪卡切换时可能通过修改属性来实现）
-      if (mutation.type === 'attributes') {
-        // 处理标签切换（class 属性变化，检测 item--focus 类）
-        if (mutation.attributeName === 'class') {
-          // 检查是否是标签栏的 item 元素
-          if (target.classList?.contains('item') &&
-              target.hasAttribute?.('data-type') &&
-              target.getAttribute('data-type') === 'tab-header') {
-            // 检查是否获得了焦点（切换到该标签）
-            if (target.classList.contains('item--focus')) {
-              debug.log('检测到标签切换到:', target.getAttribute('aria-label'));
-              // 延迟扫描，等待内容加载
-              setTimeout(() => scanCurrentFlashcard(), 200);
-              return;
-            }
-          }
-          continue;
-        }
-        
-        // 先判断目标元素是否在闪卡界面内
-        if (!isElementInReviewInterface(target)) {
-          continue;
-        }
-        
-        // 检查 custom-riff-title 属性变化
-        if (mutation.attributeName === 'custom-riff-title') {
-          // 检查目标元素是否是闪卡（有 custom-riff-decks 属性）
-          if (target.hasAttribute?.('custom-riff-decks')) {
-            debug.log('检测到闪卡标题属性变化（在闪卡界面内）', target, mutation.attributeName);
-            // 移除已处理标记，允许重新处理
-            target.removeAttribute(TITLE_REPLACED_FLAG);
-            setTimeout(() => replaceFlashcardTitle(target), 100);
-            return;
-          }
-        }
-      }
-    }
-  });
-
-  // 监听整个文档，包括属性变化
-  reviewObserver.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['custom-riff-title', 'class']
-  });
-
-  // 立即扫描一次当前显示的闪卡
-  debug.log('立即执行首次扫描');
-  scanCurrentFlashcard();
-};
-
-/**
- * 扫描当前闪卡界面显示的所有闪卡
- */
-const scanCurrentFlashcard = () => {
-  debug.log('扫描当前闪卡...');
-  
-  // 先检查是否在闪卡界面
-  const reviewContainer = document.querySelector('[data-key="dialog-opencard"]');
-  if (!reviewContainer) {
-    debug.log('未找到闪卡界面容器，跳过扫描');
-    return;
-  }
-  
-  // 在闪卡界面容器内查找所有带有 custom-riff-decks 属性的闪卡
-  // 不要求必须有 custom-riff-title 属性
-  const cards = reviewContainer.querySelectorAll<HTMLElement>('[custom-riff-decks]');
-  
-  if (cards.length > 0) {
-    debug.log(`找到 ${cards.length} 个闪卡（在闪卡界面内）`);
-    cards.forEach(card => {
-      replaceFlashcardTitle(card);
+      handleFlashcardTitle(interfaceType, el);
     });
-  } else {
-    debug.log('未找到闪卡');
   }
 };
 
-// ========== 编辑器视图功能 ==========
+/**
+ * 执行首次扫描
+ */
+const performInitialScan = () => {
+  debug.log('执行首次扫描');
 
-const createEditButton = (blockId: string): HTMLElement => {
-  const button = document.createElement('button');
-  button.className = `svelte-5zv9mq ${EDIT_BUTTON_CLASS}`;
-  button.textContent = '✍️';
-  button.title = EDIT_BUTTON_TOOLTIP;
+  // 扫描编辑界面
+  const editorElements = scanFlashcardElements('editor');
+  editorElements.forEach((el) => handleFlashcardTitle('editor', el));
 
-  button.addEventListener('click', (e) => {
-    e.stopPropagation();
-    openEditDialog(blockId);
-  });
-
-  return button;
+  // 扫描闪卡界面（如果已打开)
+  if (isReviewInterfaceOpen()) {
+    const reviewElements = scanFlashcardElements('review');
+    reviewElements.forEach((el) => handleFlashcardTitle('review', el));
+  }
 };
 
+/**
+ * 设置编辑按钮点击监听
+ */
+const setupEditButtonListener = () => {
+  // 防止重复注册事件监听器
+  if (isEditButtonListenerSetup) {
+    debug.log('事件监听器已注册，跳过');
+    return;
+  }
+
+  document.addEventListener('flashcard-title-edit', editButtonHandler);
+  isEditButtonListenerSetup = true;
+  debug.log('事件监听器注册成功');
+};
+
+/**
+ * 打开编辑对话框
+ */
 const openEditDialog = async (blockId: string) => {
   if (!blockId) {
     showSiyuanMsg(TIP_BLOCK_ID_MISSING, 'error');
     return;
   }
 
+  // 防止重复点击:如果正在打开对话框，直接返回
+  if (isDialogOpening) {
+    debug.log('对话框正在打开中,忽略重复点击');
+    return;
+  }
+  isDialogOpening = true;
+
+  // 关闭当前对话框（如果存在）
   if (currentDialog) {
-    currentDialog.destroy();
+    try {
+      currentDialog.destroy();
+    } catch (e) {
+      // 忽略销毁错误
+    }
     currentDialog = null;
   }
 
+  // 移除页面上所有残留的 b3-dialog--open 元素
+  const existingDialogs = document.querySelectorAll('.b3-dialog--open');
+  debug.log(`发现 ${existingDialogs.length} 个残留对话框`);
+  existingDialogs.forEach((dialog) => {
+    dialog.remove();
+  });
+
   let inputTitle = '';
-  
+
   try {
     const attrs = await getBlockAttrs(blockId);
     inputTitle = attrs[FLASHCARD_TITLE_ATTR] || '';
   } catch (error) {
     showSiyuanMsg('加载标题失败', 'error');
+    isDialogOpening = false; // 重置标志
     return;
   }
 
   const isMobile = isMobileEnv();
-  
+
   currentDialog = new Dialog({
     title: DIALOG_TITLE,
     content: `
@@ -452,7 +205,7 @@ const openEditDialog = async (blockId: string) => {
           type="text"
           class="b3-text-field fn__block"
           placeholder="请输入闪卡标题"
-          value="${inputTitle.replace(/"/g, '&quot;')}"
+          value="${inputTitle.replace(/"/g, '"')}"
           style="width: 100%; padding: 8px 12px;"
         />
       </div>
@@ -464,10 +217,16 @@ const openEditDialog = async (blockId: string) => {
     width: isMobile ? '90vw' : '400px',
     destroyCallback: () => {
       currentDialog = null;
+      isDialogOpening = false; // 重置标志
     }
   });
 
-  const inputEl = currentDialog.element.querySelector('#ft-editor-title-input') as HTMLInputElement;
+  // 对话框创建成功，重置标志
+  isDialogOpening = false;
+
+  const inputEl = currentDialog.element.querySelector(
+    '#ft-editor-title-input'
+  ) as HTMLInputElement;
   const cancelBtn = currentDialog.element.querySelector('#ft-editor-cancel-btn');
   const saveBtn = currentDialog.element.querySelector('#ft-editor-save-btn');
 
@@ -499,10 +258,10 @@ const openEditDialog = async (blockId: string) => {
   inputEl?.focus();
 };
 
+/**
+ * 清理函数
+ */
 export const cleanup = () => {
-  observer?.disconnect();
-  observer = null;
-
   editorObserver?.disconnect();
   editorObserver = null;
 
@@ -514,15 +273,15 @@ export const cleanup = () => {
     currentDialog = null;
   }
 
-  document.querySelectorAll(`.${EDIT_BUTTON_CLASS}`).forEach((btn) => btn.remove());
-  
-  // 移除已替换标记
-  document.querySelectorAll(`[${TITLE_REPLACED_FLAG}]`).forEach((el) => {
-    el.removeAttribute(TITLE_REPLACED_FLAG);
-  });
-  
-  // 移除编辑界面标题提示属性
-  document.querySelectorAll(`[${EDITOR_TITLE_HINT_ATTR}]`).forEach((el) => {
-    el.removeAttribute(EDITOR_TITLE_HINT_ATTR);
-  });
+  // 清理所有处理痕迹
+  cleanupProcessedElements();
+
+  // 移除事件监听器（使用正确的引用)
+  if (isEditButtonListenerSetup) {
+    document.removeEventListener('flashcard-title-edit', editButtonHandler);
+    isEditButtonListenerSetup = false;
+  }
+
+  // 重置对话框状态标志
+  isDialogOpening = false;
 };

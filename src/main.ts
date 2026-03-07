@@ -8,7 +8,7 @@ import { debugLog, debugError } from '@/utils/debug';
 
 let plugin = null
 export function usePlugin(pluginProps?: Plugin): Plugin {
-  debugLog('usePlugin', pluginProps, plugin)
+  //debugLog('usePlugin', pluginProps, plugin)
   if (pluginProps) {
     plugin = pluginProps
   }

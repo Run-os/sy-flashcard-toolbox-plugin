@@ -123,7 +123,7 @@ const openSetting = () => {
 }
 
 const plugin = usePlugin()
-debugLog('plugin is ', plugin)
+//debugLog('plugin is ', plugin)
 
 
 // add top bar button
@@ -137,7 +137,7 @@ debugLog('plugin is ', plugin)
 
 const statusRef = ref<HTMLDivElement>()
 watchEffect(() => {
-  debugLog('statusRef is ', statusRef.value)
+  //debugLog('statusRef is ', statusRef.value)
 })
 // two ways to add status bar
 onMounted(() => {

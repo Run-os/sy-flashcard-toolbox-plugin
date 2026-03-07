@@ -1,5 +1,12 @@
 export const FLASHCARD_SELECTOR = '[custom-riff-decks]';
 
+// ========== 界面类型常量 ==========
+export const INTERFACE_TYPE = {
+  EDITOR: 'editor',
+  REVIEW: 'review',
+  OTHER: 'other'
+} as const;
+
 // 样式/命名前缀（隔离避免冲突）
 export const PLUGIN_PREFIX = 'ft-editor';
 export const EDIT_BUTTON_CLASS = `${PLUGIN_PREFIX}-edit-btn`;

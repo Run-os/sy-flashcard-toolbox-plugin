@@ -58,7 +58,7 @@ export default class PluginSample extends Plugin {
     // 初始化调试模式
     await this.initDebugMode()
 
-    debugLog('Plugin loaded, the plugin is ', this)
+    //debugLog('Plugin loaded, the plugin is ', this)
 
     init(this)
   }
@@ -72,7 +72,7 @@ export default class PluginSample extends Plugin {
       const config = await this.loadData('config');
       const debugMode = config?.debugMode ?? false;
       setDebugMode(debugMode);
-      debugLog('调试模式配置已加载:', debugMode);
+      //debugLog('调试模式配置已加载:', debugMode);
     } catch (err) {
       // 配置加载失败时默认关闭调试模式
       setDebugMode(false);
