@@ -156,7 +156,7 @@ const scanEditorTitleHints = () => {
       return;
     }
     
-    // 排除闪卡界面（复习界面由 replaceFlashcardTitle 处理）
+    // 排除闪卡界面（闪卡界面由 replaceFlashcardTitle 处理）
     if (isInReviewInterface(cardElement)) {
       return;
     }
@@ -186,14 +186,14 @@ const scanEditorTitleHints = () => {
   });
 };
 
-// ========== 复习界面标题替换功能 ==========
+// ========== 闪卡界面标题替换功能 ==========
 
 /**
  * 替换单个闪卡的标题
  * @param cardElement 闪卡元素
  */
 const replaceFlashcardTitle = async (cardElement: HTMLElement) => {
-  debug.log('开始处理闪卡（已确认在复习界面）', cardElement);
+  debug.log('开始处理闪卡（已确认在闪卡界面）', cardElement);
   
   // 检查是否已替换，避免重复处理
   if (cardElement.hasAttribute(TITLE_REPLACED_FLAG)) {
@@ -205,23 +205,31 @@ const replaceFlashcardTitle = async (cardElement: HTMLElement) => {
   const customTitle = getCustomTitle(cardElement);
   debug.log('custom-riff-title 属性值:', customTitle);
   
-  // 获取第一个子元素（排除 protyle-attr）
-  const firstChild = cardElement.querySelector<HTMLElement>(':scope > div:not(.protyle-attr)');
-  debug.log('第一个子元素:', firstChild);
-  debug.log('第一个子元素的 data-type:', firstChild?.getAttribute('data-type'));
+  // 获取第一个子元素
+  // 如果是超级块，需要在子元素中查找；否则 firstTitleChild 就是 cardElement 自身
+  let firstTitleChild: HTMLElement | null;
+  if (cardElement.getAttribute('data-type') === 'NodeSuperBlock') {
+    // 超级块：查找第一个子元素（排除 protyle-attr）
+    firstTitleChild = cardElement.querySelector<HTMLElement>(':scope > div:not(.protyle-attr)');
+  } else {
+    // 非超级块：cardElement 自身就是标题元素
+    firstTitleChild = cardElement;
+  }
+  debug.log('第一个子元素:', firstTitleChild);
+  debug.log('第一个子元素的 data-type:', firstTitleChild?.getAttribute('data-type'));
   
-  if (!firstChild) {
+  if (!firstTitleChild) {
     debug.log('未找到第一个子元素');
     return;
   }
   
-  if (!isHeadingElement(firstChild)) {
-    debug.log('第一个子元素不是标题');
-    return;
-  }
+//  if (!isHeadingElement(firstTitleChild)) {
+//   debug.log('第一个子元素不是标题');
+//    return;
+// }
   
   // 获取标题文本元素
-  const textElement = getHeadingTextElement(firstChild);
+  const textElement = getHeadingTextElement(firstTitleChild);
   debug.log('标题文本元素:', textElement);
   debug.log('原标题文本:', textElement?.textContent);
   
@@ -233,7 +241,7 @@ const replaceFlashcardTitle = async (cardElement: HTMLElement) => {
   // 如果标题为空，需要恢复原标题
   if (!customTitle) {
     // 从标题元素获取块 ID 以查询原始标题（标题元素有独立的 data-node-id）
-    const headingBlockId = firstChild.getAttribute('data-node-id');
+    const headingBlockId = firstTitleChild.getAttribute('data-node-id');
     if (headingBlockId) {
       try {
         const block = await getBlockByID(headingBlockId);
@@ -265,9 +273,9 @@ const replaceFlashcardTitle = async (cardElement: HTMLElement) => {
 };
 
 /**
- * 检查元素是否在复习界面内
+ * 检查元素是否在闪卡界面内
  * @param element 待检查元素
- * @returns 是否在复习界面内
+ * @returns 是否在闪卡界面内
  */
 const isElementInReviewInterface = (element: HTMLElement): boolean => {
   let parent = element.parentElement;
@@ -281,12 +289,12 @@ const isElementInReviewInterface = (element: HTMLElement): boolean => {
 };
 
 /**
- * 初始化复习界面 MutationObserver
+ * 初始化闪卡界面 MutationObserver
  */
 const initReviewObserver = () => {
-  debug.log('初始化复习界面监听器');
+  debug.log('初始化闪卡界面监听器');
   
-  // 创建复习界面监听器
+  // 创建闪卡界面监听器
   reviewObserver = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       const target = mutation.target as HTMLElement;
@@ -295,13 +303,13 @@ const initReviewObserver = () => {
       if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
         for (const node of Array.from(mutation.addedNodes)) {
           if (node instanceof HTMLElement) {
-            // 先判断是否在复习界面内
+            // 先判断是否在闪卡界面内
             if (!isElementInReviewInterface(node)) {
               continue;
             }
             // 检查是否是带有 custom-riff-decks 属性的闪卡
             if (node.hasAttribute?.('custom-riff-decks')) {
-              debug.log('检测到闪卡元素（新增，在复习界面内）', node);
+              debug.log('检测到闪卡元素（新增，在闪卡界面内）', node);
               setTimeout(() => replaceFlashcardTitle(node as HTMLElement), 100);
               return;
             }
@@ -309,7 +317,7 @@ const initReviewObserver = () => {
             // 检查子元素中是否有闪卡
             const cardElement = node.querySelector?.('[custom-riff-decks]') as HTMLElement;
             if (cardElement && isElementInReviewInterface(cardElement)) {
-              debug.log('检测到闪卡元素（子元素，在复习界面内）', cardElement);
+              debug.log('检测到闪卡元素（子元素，在闪卡界面内）', cardElement);
               setTimeout(() => replaceFlashcardTitle(cardElement), 100);
               return;
             }
@@ -336,7 +344,7 @@ const initReviewObserver = () => {
           continue;
         }
         
-        // 先判断目标元素是否在复习界面内
+        // 先判断目标元素是否在闪卡界面内
         if (!isElementInReviewInterface(target)) {
           continue;
         }
@@ -345,7 +353,7 @@ const initReviewObserver = () => {
         if (mutation.attributeName === 'custom-riff-title') {
           // 检查目标元素是否是闪卡（有 custom-riff-decks 属性）
           if (target.hasAttribute?.('custom-riff-decks')) {
-            debug.log('检测到闪卡标题属性变化（在复习界面内）', target, mutation.attributeName);
+            debug.log('检测到闪卡标题属性变化（在闪卡界面内）', target, mutation.attributeName);
             // 移除已处理标记，允许重新处理
             target.removeAttribute(TITLE_REPLACED_FLAG);
             setTimeout(() => replaceFlashcardTitle(target), 100);
@@ -370,24 +378,24 @@ const initReviewObserver = () => {
 };
 
 /**
- * 扫描当前复习界面显示的所有闪卡
+ * 扫描当前闪卡界面显示的所有闪卡
  */
 const scanCurrentFlashcard = () => {
   debug.log('扫描当前闪卡...');
   
-  // 先检查是否在复习界面
+  // 先检查是否在闪卡界面
   const reviewContainer = document.querySelector('[data-key="dialog-opencard"]');
   if (!reviewContainer) {
-    debug.log('未找到复习界面容器，跳过扫描');
+    debug.log('未找到闪卡界面容器，跳过扫描');
     return;
   }
   
-  // 在复习界面容器内查找所有带有 custom-riff-decks 属性的闪卡
+  // 在闪卡界面容器内查找所有带有 custom-riff-decks 属性的闪卡
   // 不要求必须有 custom-riff-title 属性
   const cards = reviewContainer.querySelectorAll<HTMLElement>('[custom-riff-decks]');
   
   if (cards.length > 0) {
-    debug.log(`找到 ${cards.length} 个闪卡（在复习界面内）`);
+    debug.log(`找到 ${cards.length} 个闪卡（在闪卡界面内）`);
     cards.forEach(card => {
       replaceFlashcardTitle(card);
     });

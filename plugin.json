@@ -23,17 +23,5 @@
   "funding": {
     "custom": []
   },
-  "keywords": [],
-  "settings": {
-    "debugMode": {
-      "title": {
-        "default": "调试模式"
-      },
-      "description": {
-        "default": "启用后在控制台输出调试日志，方便排查问题"
-      },
-      "type": "checkbox",
-      "default": false
-    }
-  }
+  "keywords": []
 }

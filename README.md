@@ -4,16 +4,10 @@
 
 思源笔记中管理闪卡的工具箱插件。帮助您自定义、编辑和管理闪卡标题。
 
-![asset\readme1.png](https://raw.githubusercontent.com/Run-os/sy-flashcard-toolbox-plugin/refs/heads/main/asset/readme1.png)
-
 演示视频：
 
 ![asset\PixPin_2026-03-06_23-26-52[00h00m00s-00h00m20s].gif](https://raw.githubusercontent.com/Run-os/sy-flashcard-toolbox-plugin/refs/heads/main/asset/PixPin_2026-03-06_23-26-52%5B00h00m00s-00h00m20s%5D.gif)
 
-
-## 使用方法
-
-**由于本插件是通过标题如`h1`来识别闪卡标题，所以需要通过标题或者超级块制卡。**（超级块制卡需要第一个元素为标题）
 
 ## 功能特性
 
@@ -21,22 +15,6 @@
 - **快捷编辑按钮** - 在编辑器中的闪卡上直接添加编辑按钮
 - **实时预览** - 复习闪卡时显示自定义标题
 - **无缝集成** - 与思源原生闪卡系统完美配合，不影响原始内容
-
-## 安装方式
-
-### 从集市安装
-
-1. 打开思源笔记
-2. 进入 `设置` → `集市`
-3. 搜索 "闪卡标题工具箱"
-4. 点击安装
-
-### 手动安装
-
-1. 从 [Releases](https://github.com/Run-os/sy-flashcard-toolbox-plugin/releases) 下载最新的 `package.zip`
-2. 解压到思源工作空间：`{工作空间}/data/plugins/sy-flashcard-toolbox-plugin/`
-3. 重启思源笔记
-4. 在 `设置` → `集市` 中启用插件
 
 ## 使用方法
 

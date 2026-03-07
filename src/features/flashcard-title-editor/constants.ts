@@ -28,8 +28,8 @@ export const DEBOUNCE_DELAY = 300;
 // 通知显示时长（ms）
 export const MSG_TIMEOUT = 2000;
 
-// ========== 复习界面标题替换相关 ==========
-// 复习界面容器选择器
+// ========== 闪卡界面标题替换相关 ==========
+// 闪卡界面容器选择器
 export const REVIEW_CONTAINER_SELECTOR = '.protyle-wysiwyg';
 // 标题元素类型标识
 export const HEADING_TYPE = 'NodeHeading';
@@ -39,7 +39,7 @@ export const HEADING_TEXT_SELECTOR = 'div[contenteditable="true"]';
 export const TITLE_REPLACED_FLAG = 'data-title-replaced';
 
 // ========== 界面判断相关 ==========
-// 复习界面标识属性（父级元素）
+// 闪卡界面标识属性（父级元素）
 export const REVIEW_INTERFACE_ATTR = 'data-key';
 export const REVIEW_INTERFACE_VALUE = 'dialog-opencard';
 // 编辑器界面标识属性（父级元素）

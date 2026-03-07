@@ -44,7 +44,7 @@ export const filterInvalidChars = (str: string): string => {
   return str.trim();
 };
 
-// ========== 复习界面标题替换工具函数 ==========
+// ========== 闪卡界面标题替换工具函数 ==========
 
 /**
  * 检测元素是否为标题元素
@@ -77,13 +77,13 @@ export const getCustomTitle = (cardElement: HTMLElement): string | null => {
 // ========== 界面判断工具函数 ==========
 
 /**
- * 判断闪卡元素是否在复习界面中
+ * 判断闪卡元素是否在闪卡界面中
  * 通过检查父级元素是否具有 data-key="dialog-opencard" 属性
  * @param cardElement 闪卡元素
- * @returns 是否在复习界面中
+ * @returns 是否在闪卡界面中
  */
 export const isInReviewInterface = (cardElement: HTMLElement): boolean => {
-  // 向上查找父级元素，检查是否存在复习界面标识
+  // 向上查找父级元素，检查是否存在闪卡界面标识
   let parent = cardElement.parentElement;
   while (parent) {
     if (parent.getAttribute(REVIEW_INTERFACE_ATTR) === REVIEW_INTERFACE_VALUE) {
