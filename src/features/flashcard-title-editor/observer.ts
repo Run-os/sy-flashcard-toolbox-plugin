@@ -88,6 +88,17 @@ export const shouldScanFromMutations = (
   mutations: MutationRecord[],
   interfaceType: InterfaceType
 ): { shouldScan: boolean; shouldScanTitle: boolean } => {
+  // 编辑界面：如果闪卡界面已打开，跳过编辑界面的扫描
+  if (interfaceType === 'editor') {
+    const reviewContainer = document.querySelector(
+      `[${REVIEW_INTERFACE_ATTR}="${REVIEW_INTERFACE_VALUE}"]:not(.fn__none)`
+    );
+    if (reviewContainer) {
+      debug.log('闪卡界面已打开，跳过编辑界面扫描');
+      return { shouldScan: false, shouldScanTitle: false };
+    }
+  }
+
   let shouldScan = false;
   let shouldScanTitle = false;
 

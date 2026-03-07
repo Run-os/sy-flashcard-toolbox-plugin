@@ -9,7 +9,8 @@ import {
   EDIT_BUTTON_TOOLTIP,
   TITLE_REPLACED_FLAG,
   EDITOR_TITLE_HINT_ATTR,
-  HEADING_TEXT_SELECTOR
+  HEADING_TEXT_SELECTOR,
+  TITLE_LOCKED_ATTR
 } from './constants';
 import {
   getCustomTitle,
@@ -87,6 +88,48 @@ export const handleFlashcardTitle = async (
   }
 };
 
+// ========== 标题锁定/解锁函数 ==========
+
+/**
+ * 锁定标题文本元素
+ * 在闪卡界面替换标题后调用，防止用户编辑
+ * @param textElement 标题文本元素
+ */
+const lockTitleElement = (textElement: HTMLElement): void => {
+  textElement.contentEditable = 'false';
+  textElement.setAttribute(TITLE_LOCKED_ATTR, 'true');
+  debug.log('🔒 标题已锁定', textElement);
+};
+
+/**
+ * 解锁单个标题文本元素
+ * @param textElement 标题文本元素
+ */
+const unlockTitleElement = (textElement: HTMLElement): void => {
+  if (textElement.hasAttribute(TITLE_LOCKED_ATTR)) {
+    textElement.contentEditable = 'true';
+    textElement.removeAttribute(TITLE_LOCKED_ATTR);
+    debug.log('🔓 标题已解锁', textElement);
+  }
+};
+
+/**
+ * 解锁所有被锁定的标题块
+ * 在进入编辑界面时调用
+ */
+export const unlockAllTitleBlocks = (): void => {
+  const lockedElements = document.querySelectorAll<HTMLElement>(
+    `[${TITLE_LOCKED_ATTR}]`
+  );
+  if (lockedElements.length === 0) return;
+
+  lockedElements.forEach((element) => {
+    element.contentEditable = 'true';
+    element.removeAttribute(TITLE_LOCKED_ATTR);
+  });
+  debug.log(`🔓 已解锁 ${lockedElements.length} 个标题块`);
+};
+
 // ========== 编辑界面处理 ==========
 
 /**
@@ -102,6 +145,9 @@ const handleEditorTitle = async (
   if (isInReviewInterface(element)) {
     return;
   }
+
+  // 解锁所有被锁定的标题块
+  unlockAllTitleBlocks();
 
   // 1. 添加编辑按钮
   addEditButtonToElement(element);
@@ -233,8 +279,11 @@ const handleReviewTitle = async (
     return;
   }
 
-  // 如果标题为空，需要恢复原标题
+  // 如果标题为空，需要恢复原标题并解锁
   if (!customTitle) {
+    // 解锁标题元素，允许编辑
+    unlockTitleElement(textElement);
+
     // 从标题元素获取块 ID 以查询原始标题（标题元素有独立的 data-node-id）
     const headingBlockId = firstTitleChild.getAttribute('data-node-id');
     if (headingBlockId) {
@@ -260,6 +309,9 @@ const handleReviewTitle = async (
   // 仅替换文本内容，保持所有属性和结构不变
   const originalText = textElement.textContent;
   textElement.textContent = customTitle;
+
+  // 锁定标题元素，防止用户编辑
+  lockTitleElement(textElement);
 
   debug.log('✅ 标题替换成功:', originalText, '->', customTitle);
 

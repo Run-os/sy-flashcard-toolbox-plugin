@@ -3,7 +3,6 @@ import {
   DEBOUNCE_DELAY,
   MSG_TIMEOUT,
   HEADING_TYPE,
-  HEADING_TEXT_SELECTOR,
   REVIEW_INTERFACE_ATTR,
   REVIEW_INTERFACE_VALUE,
   EDITOR_INTERFACE_ATTR,
@@ -59,11 +58,18 @@ export const isHeadingElement = (element: HTMLElement | Element): boolean => {
 
 /**
  * 获取标题文本元素
+ * 注意：标题被锁定时 contenteditable 为 false，所以需要同时匹配 true 和 false
  * @param headingElement 标题元素
  * @returns 标题文本 div 元素
  */
 export const getHeadingTextElement = (headingElement: HTMLElement | Element): HTMLElement | null => {
-  return headingElement.querySelector<HTMLElement>(HEADING_TEXT_SELECTOR);
+  // 先尝试匹配 contenteditable="true"（未锁定状态）
+  let textElement = headingElement.querySelector<HTMLElement>('div[contenteditable="true"]');
+  if (textElement) return textElement;
+  
+  // 再尝试匹配 contenteditable="false"（锁定状态）
+  textElement = headingElement.querySelector<HTMLElement>('div[contenteditable="false"]');
+  return textElement;
 };
 
 /**

@@ -50,3 +50,17 @@
 [data-custom-title]:focus-within::after {
   content: none;
 }
+
+// ========== 闪卡界面标题锁定样式 ==========
+// 在锁定的标题前显示禁止符号
+[data-ft-title-locked="true"]::before {
+  content: "🚫 ";
+  opacity: 0.6;
+  margin-right: 4px;
+}
+
+// 锁定标题的禁用样式
+[data-ft-title-locked="true"] {
+  cursor: not-allowed !important;
+  user-select: none;
+}

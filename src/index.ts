@@ -84,6 +84,16 @@ export default class PluginSample extends Plugin {
   }
 
   /**
+   * 卸载插件时删除插件数据
+   * Delete plugin data when uninstalling the plugin
+   */
+  uninstall() {
+    this.removeData('config').catch(e => {
+      showMessage(`uninstall [${this.name}] remove data [config] fail: ${e.msg}`);
+    });
+  }
+
+  /**
    * 打开设置面板
    */
   openSetting(): void {

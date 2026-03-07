@@ -56,3 +56,7 @@ export const EDITOR_INTERFACE_VALUE = 'finished';
 // ========== 编辑界面标题提示相关 ==========
 // 用于存储替代标题的 data 属性名
 export const EDITOR_TITLE_HINT_ATTR = 'data-custom-title';
+
+// ========== 标题锁定相关 ==========
+// 标题锁定标记属性（用于闪卡界面锁定标题，防止编辑）
+export const TITLE_LOCKED_ATTR = 'data-ft-title-locked';
