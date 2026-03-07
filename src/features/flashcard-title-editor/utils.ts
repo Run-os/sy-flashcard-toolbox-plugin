@@ -41,7 +41,7 @@ export const showSiyuanMsg = (msg: string, type: 'success' | 'error' | 'info' = 
 };
 
 export const filterInvalidChars = (str: string): string => {
-  return str.trim().replace(/[<>\/\\:"*?|]/g, '');
+  return str.trim();
 };
 
 // ========== 复习界面标题替换工具函数 ==========
