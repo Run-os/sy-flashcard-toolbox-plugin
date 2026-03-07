@@ -4,15 +4,16 @@ import {
 import { createApp } from 'vue'
 import App from './App.vue'
 import { init as initFlashcardTitleEditor, cleanup as cleanupFlashcardTitleEditor } from './features/flashcard-title-editor/index';
+import { debugLog, debugError } from '@/utils/debug';
 
 let plugin = null
 export function usePlugin(pluginProps?: Plugin): Plugin {
-  console.log('usePlugin', pluginProps, plugin)
+  debugLog('usePlugin', pluginProps, plugin)
   if (pluginProps) {
     plugin = pluginProps
   }
   if (!plugin && !pluginProps) {
-    console.error('need bind plugin')
+    debugError('need bind plugin')
   }
   return plugin;
 }

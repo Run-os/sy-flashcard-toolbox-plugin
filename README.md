@@ -1,3 +1,5 @@
+本项目大量参考[sy-tomato-plugin](https://github.com/IAliceBobI/sy-tomato-plugin)，感谢 IAliceBobI 的插件。
+
 # 思源闪卡工具箱
 
 思源笔记中管理闪卡的工具箱插件。帮助您自定义、编辑和管理闪卡标题。
@@ -7,6 +9,11 @@
 演示视频：
 
 ![asset\PixPin_2026-03-06_23-26-52[00h00m00s-00h00m20s].gif](https://raw.githubusercontent.com/Run-os/sy-flashcard-toolbox-plugin/refs/heads/main/asset/PixPin_2026-03-06_23-26-52%5B00h00m00s-00h00m20s%5D.gif)
+
+
+## 使用方法
+
+**由于本插件是通过标题如`h1`来识别闪卡标题，所以需要通过标题或者超级块制卡。**
 
 ## 功能特性
 
@@ -85,7 +92,7 @@ pnpm release:major  # 递增主版本
 
 ## 许可证
 
-[MIT License](./LICENSE)
+[MIT License](https://github.com/Run-os/sy-flashcard-toolbox-plugin/blob/main/LICENSE)
 
 ## 相关链接
 

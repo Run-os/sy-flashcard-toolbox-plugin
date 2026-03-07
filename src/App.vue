@@ -92,6 +92,7 @@ import SyInput from '@/components/SiyuanTheme/SyInput.vue'
 import SySelect from '@/components/SiyuanTheme/SySelect.vue'
 import SyTextarea from '@/components/SiyuanTheme/SyTextarea.vue'
 import { usePlugin } from '@/main'
+import { debugLog } from '@/utils/debug'
 import { onMounted, ref, watchEffect } from 'vue'
 
 
@@ -122,21 +123,21 @@ const openSetting = () => {
 }
 
 const plugin = usePlugin()
-console.log('plugin is ', plugin)
+debugLog('plugin is ', plugin)
 
 
 // add top bar button
-plugin.addTopBar({
-  icon: 'iconHeart',
-  title: 'Plugin Sample',
-  callback: () => {
-    alert('Hello Siyuan.')
-  },
-})
+//plugin.addTopBar({
+//  icon: 'iconHeart',
+//  title: 'Plugin Sample',
+//  callback: () => {
+//    alert('Hello Siyuan.')
+//  },
+//})
 
 const statusRef = ref<HTMLDivElement>()
 watchEffect(() => {
-  console.log('statusRef is ', statusRef.value)
+  debugLog('statusRef is ', statusRef.value)
 })
 // two ways to add status bar
 onMounted(() => {
