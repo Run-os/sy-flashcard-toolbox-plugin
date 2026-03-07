@@ -1,11 +1,4 @@
-// 复习界面
-export const FLASHCARD_CONTAINER_CLASS = '.riff-card';
-export const FLASHCARD_PARENT_CONTAINER = '.riff-container';
-export const CONTROLS_CONTAINER_CLASS = '.riff-card-controls';
-
-// 编辑器视图
-export const EDITOR_FLASHCARD_SELECTOR = '[custom-riff-decks]';
-export const EDITOR_FLASHCARD_PARENT = '.protyle-wysiwyg';
+export const FLASHCARD_SELECTOR = '[custom-riff-decks]';
 
 // 样式/命名前缀（隔离避免冲突）
 export const PLUGIN_PREFIX = 'ft-editor';
@@ -39,8 +32,6 @@ export const MSG_TIMEOUT = 2000;
 // ========== 复习界面标题替换相关 ==========
 // 复习界面容器选择器
 export const REVIEW_CONTAINER_SELECTOR = '.protyle-wysiwyg';
-// 当前显示的闪卡选择器（带有 custom-super-card-box="1" 属性）
-export const REVIEW_CURRENT_FLASHCARD_SELECTOR = '[custom-super-card-box="1"][custom-riff-decks]';
 // 标题元素类型标识
 export const HEADING_TYPE = 'NodeHeading';
 // 标题文本元素选择器

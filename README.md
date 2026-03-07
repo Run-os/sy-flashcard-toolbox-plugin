@@ -1,12 +1,12 @@
 # 思源闪卡标题工具箱
 
-思源笔记中管理闪卡标题的工具箱插件。帮助您自定义、编辑和管理闪卡标题。
+思源笔记中管理闪卡的工具箱插件。帮助您自定义、编辑和管理闪卡标题。
 
-[![1](./asset/readme1.png)](https://raw.githubusercontent.com/Run-os/siyuan-flashcard-title-toolbox-plugin/refs/heads/main/asset/readme1.png)
+[![1](./asset/readme1.png)](https://raw.githubusercontent.com/Run-os/sy-flashcard-toolbox-plugin/refs/heads/main/asset/readme1.png)
 
 演示视频：
 
-![asset\PixPin_2026-03-06_23-26-52[00h00m00s-00h00m20s].gif](https://raw.githubusercontent.com/Run-os/siyuan-flashcard-title-toolbox-plugin/refs/heads/main/asset/PixPin_2026-03-06_23-26-52%5B00h00m00s-00h00m20s%5D.gif)
+![asset\PixPin_2026-03-06_23-26-52[00h00m00s-00h00m20s].gif](https://raw.githubusercontent.com/Run-os/sy-flashcard-toolbox-plugin/refs/heads/main/asset/PixPin_2026-03-06_23-26-52%5B00h00m00s-00h00m20s%5D.gif)
 
 ## 功能特性
 
@@ -26,8 +26,8 @@
 
 ### 手动安装
 
-1. 从 [Releases](https://github.com/Run-os/siyuan-flashcard-title-toolbox-plugin/releases) 下载最新的 `package.zip`
-2. 解压到思源工作空间：`{工作空间}/data/plugins/siyuan-flashcard-title-toolbox-plugin/`
+1. 从 [Releases](https://github.com/Run-os/sy-flashcard-toolbox-plugin/releases) 下载最新的 `package.zip`
+2. 解压到思源工作空间：`{工作空间}/data/plugins/sy-flashcard-toolbox-plugin/`
 3. 重启思源笔记
 4. 在 `设置` → `集市` 中启用插件
 

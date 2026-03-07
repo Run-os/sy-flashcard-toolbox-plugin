@@ -26,8 +26,8 @@ export function init(plugin: Plugin) {
   usePlugin(plugin);
 
   appDiv = document.createElement('div');
-  appDiv.classList.add('siyuan-flashcard-title-toolbox-plugin-app');
-  appDiv.id = 'siyuan-flashcard-title-toolbox-plugin-app';
+  appDiv.classList.add('sy-flashcard-toolbox-plugin-app');
+  appDiv.id = 'sy-flashcard-toolbox-plugin-app';
   app = createApp(App);
   app.mount(appDiv);
   document.body.appendChild(appDiv);

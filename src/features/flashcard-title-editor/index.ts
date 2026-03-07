@@ -3,7 +3,7 @@ import {
   EDIT_BUTTON_CLASS,
   EDIT_BUTTON_TOOLTIP,
   TIP_BLOCK_ID_MISSING,
-  EDITOR_FLASHCARD_SELECTOR,
+  FLASHCARD_SELECTOR,
   DIALOG_TITLE,
   SAVE_BUTTON_TEXT,
   CANCEL_BUTTON_TEXT,
@@ -84,7 +84,7 @@ const initMutationObserver = () => {
 };
 
 const scanEditorFlashcards = () => {
-  const cardElements = document.querySelectorAll<HTMLElement>(EDITOR_FLASHCARD_SELECTOR);
+  const cardElements = document.querySelectorAll<HTMLElement>(FLASHCARD_SELECTOR);
   
   cardElements.forEach((cardElement) => {
     const blockId = cardElement.getAttribute('data-node-id');

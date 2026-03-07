@@ -1,8 +1,8 @@
 {
-  "name": "siyuan-flashcard-title-toolbox-plugin",
+  "name": "sy-flashcard-toolbox-plugin",
   "version": "1.0.1",
   "type": "module",
-  "description": "A toolbox plugin for managing flashcard titles in SiYuan Note",
+  "description": "A toolbox plugin for managing flashcard in SiYuan Note",
   "author": "",
   "license": "MIT",
   "homepage": "",
