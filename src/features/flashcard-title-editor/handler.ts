@@ -14,8 +14,7 @@ import {
 } from './constants';
 import {
   getCustomTitle,
-  getHeadingTextElement,
-  isInReviewInterface
+  getHeadingTextElement
 } from './utils';
 import { getBlockByID } from '../../api';
 import { createDebugLogger } from '@/utils/debug';
@@ -67,7 +66,7 @@ export const unmarkElementProcessed = (element: HTMLElement): void => {
 
 /**
  * 统一处理闪卡标题
- * 核心逻辑复用，差异化分支处理
+ * 无论在哪个界面，只要有 custom-riff-decks 属性就添加编辑按钮
  * @param interfaceType 界面类型
  * @param element 闪卡元素
  */
@@ -78,13 +77,19 @@ export const handleFlashcardTitle = async (
   // 核心复用逻辑：读取自定义标题属性
   const customTitle = getCustomTitle(element);
 
-  // 差异化分支处理
-  if (interfaceType === 'editor') {
-    // 编辑界面：显示标题提示 + 添加编辑按钮
-    await handleEditorTitle(element, customTitle);
-  } else if (interfaceType === 'review') {
+  // 解锁所有被锁定的标题块（进入编辑界面时需要）
+  unlockAllTitleBlocks();
+
+  // 统一添加编辑按钮（所有界面都添加）
+  addEditButtonToElement(element);
+
+  // 差异化分支处理：仅闪卡复习界面需要替换标题显示
+  if (interfaceType === 'review') {
     // 闪卡界面：替换显示标题
-    await handleReviewTitle(element, customTitle);
+    await handleReviewTitleDisplay(element, customTitle);
+  } else {
+    // 编辑界面/其他界面：显示标题提示
+    showTitleHintOnElement(element, customTitle);
   }
 };
 
@@ -130,31 +135,7 @@ export const unlockAllTitleBlocks = (): void => {
   debug.log(`🔓 已解锁 ${lockedElements.length} 个标题块`);
 };
 
-// ========== 编辑界面处理 ==========
-
-/**
- * 编辑界面标题处理
- * @param element 闪卡元素
- * @param customTitle 自定义标题
- */
-const handleEditorTitle = async (
-  element: HTMLElement,
-  customTitle: string | null
-): Promise<void> => {
-  // 排除闪卡界面（闪卡界面由 handleReviewTitle 处理）
-  if (isInReviewInterface(element)) {
-    return;
-  }
-
-  // 解锁所有被锁定的标题块
-  unlockAllTitleBlocks();
-
-  // 1. 添加编辑按钮
-  addEditButtonToElement(element);
-
-  // 2. 显示标题提示
-  showTitleHintOnElement(element, customTitle);
-};
+// ========== 编辑按钮处理 ==========
 
 /**
  * 为闪卡元素添加编辑按钮
@@ -193,12 +174,18 @@ export const createEditButton = (blockId: string): HTMLElement => {
 
   button.addEventListener('click', (e) => {
     e.stopPropagation();
+    e.preventDefault();
     // 触发自定义事件，由 index.ts 处理对话框
     document.dispatchEvent(
       new CustomEvent('flashcard-title-edit', {
         detail: { blockId }
       })
     );
+  });
+
+  // 阻止 mousedown 事件冒泡，防止触发闪卡界面的关闭行为
+  button.addEventListener('mousedown', (e) => {
+    e.stopPropagation();
   });
 
   return button;
@@ -234,27 +221,24 @@ const showTitleHintOnElement = (
   }
 };
 
-// ========== 闪卡界面处理 ==========
+// ========== 闪卡界面标题显示处理 ==========
 
 /**
- * 闪卡界面标题处理
+ * 闪卡界面标题显示处理（仅处理标题替换，按钮由主函数统一添加）
  * @param element 闪卡元素
  * @param customTitle 自定义标题
  */
-const handleReviewTitle = async (
+const handleReviewTitleDisplay = async (
   element: HTMLElement,
   customTitle: string | null
 ): Promise<void> => {
-  debug.log('开始处理闪卡（已确认在闪卡界面）', element);
+  debug.log('开始处理闪卡界面标题显示', element);
 
   // 检查是否已处理，避免重复处理
   if (isElementProcessed(element, 'review')) {
     debug.log('已处理过，跳过');
     return;
   }
-
-  // 添加编辑按钮（闪卡界面也需要）
-  addEditButtonToElement(element);
 
   // 获取第一个子元素
   // 如果是超级块，需要在子元素中查找；否则 firstTitleChild 就是 cardElement 自身

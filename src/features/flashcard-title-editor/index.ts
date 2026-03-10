@@ -176,10 +176,11 @@ const openEditDialog = async (blockId: string) => {
     currentDialog = null;
   }
 
-  // 移除页面上所有残留的 b3-dialog--open 元素
-  const existingDialogs = document.querySelectorAll('.b3-dialog--open');
-  debug.log(`发现 ${existingDialogs.length} 个残留对话框`);
-  existingDialogs.forEach((dialog) => {
+  // 注意：不要移除所有的 b3-dialog--open 元素
+  // 因为间隔重复界面的小窗口也是 b3-dialog--open 元素
+  // 只移除由本插件创建的对话框（通过特定类名标识）
+  const pluginDialogs = document.querySelectorAll('.ft-editor-dialog');
+  pluginDialogs.forEach((dialog) => {
     dialog.remove();
   });
 
@@ -220,6 +221,12 @@ const openEditDialog = async (blockId: string) => {
       isDialogOpening = false; // 重置标志
     }
   });
+
+  // 为对话框添加自定义类名，以便识别和清理
+  const dialogElement = currentDialog.element.closest('.b3-dialog--open');
+  if (dialogElement) {
+    dialogElement.classList.add('ft-editor-dialog');
+  }
 
   // 对话框创建成功，重置标志
   isDialogOpening = false;
